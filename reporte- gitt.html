@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Actualización Sociodemográfica · Cohortes Superiores · 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ── TOKENS ─────────────────────────────────────────────── */
+:root {
+  --bg:       #F8F6F2;
+  --bg2:      #FFFFFF;
+  --bg3:      #FFFFFF;
+  --surface:  #FFFFFF;
+  --surface2: #F3F0EB;
+
+  --border:   rgba(0,0,0,0.07);
+  --border2:  rgba(0,0,0,0.13);
+
+  --text:     #1a1a2e;
+  --muted:    #6b7280;
+  --dim:      #9ca3af;
+
+  /* Accent palette — pastel */
+  --rose:     #E57373; --rose-bg:    #FDECEA; --rose-border: rgba(229,115,115,.35);
+  --amber:    #F6A623; --amber-bg:   #FFF8EC; --amber-border:rgba(246,166,35,.35);
+  --teal:     #4DB6AC; --teal-bg:    #E8F6F5; --teal-border: rgba(77,182,172,.35);
+  --blue:     #5B9CF6; --blue-bg:    #EEF4FF; --blue-border: rgba(91,156,246,.35);
+  --violet:   #9B7FD4; --violet-bg:  #F3EEFF; --violet-border:rgba(155,127,212,.35);
+  --sage:     #81B89A; --sage-bg:    #EDF5EF; --sage-border: rgba(129,184,154,.35);
+  --peach:    #F0956A; --peach-bg:   #FEF0EA; --peach-border:rgba(240,149,106,.35);
+
+  --r: 16px; --r2: 12px; --r3: 8px;
+  --shadow-s: 0 1px 4px rgba(0,0,0,0.06), 0 0 1px rgba(0,0,0,0.04);
+  --shadow-m: 0 4px 16px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-l: 0 8px 32px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.05);
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0 }
+html { scroll-behavior:smooth; scroll-snap-type:y proximity; overflow-y:scroll }
+body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--text); line-height:1.6 }
+::-webkit-scrollbar { width:5px }
+::-webkit-scrollbar-track { background:transparent }
+::-webkit-scrollbar-thumb { background:rgba(0,0,0,0.13); border-radius:99px }
+
+/* ── NAV ─────────────────────────────────────────────────── */
+nav {
+  position:fixed; top:0; left:0; right:0; z-index:200; height:60px;
+  display:flex; align-items:center; justify-content:space-between; padding:0 2rem;
+  background:rgba(248,246,242,0.92); backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border); box-shadow: var(--shadow-s);
+}
+.nav-brand { font-size:.76rem; font-weight:800; letter-spacing:.16em; text-transform:uppercase; color:var(--amber) }
+.nav-items { display:flex; gap:.2rem }
+.nav-item {
+  font-size:.76rem; font-weight:600; letter-spacing:.05em; text-transform:uppercase;
+  padding:.34rem .8rem; border-radius:6px; cursor:pointer; color:var(--muted);
+  border:1px solid transparent; transition:all .2s
+}
+.nav-item:hover { color:var(--text); background:rgba(0,0,0,.04) }
+.nav-item.active { color:var(--amber); background:var(--amber-bg); border-color:var(--amber-border) }
+.nav-dots { display:flex; gap:.4rem; align-items:center }
+.nav-dot { width:7px; height:7px; border-radius:50%; background:var(--dim); cursor:pointer; transition:all .25s }
+.nav-dot.active { background:var(--amber); transform:scale(1.5) }
+
+/* ── SECTIONS ─────────────────────────────────────────────── */
+section {
+  min-height:100vh; scroll-snap-align:start;
+  padding:64px 2.6vw 1.4rem; display:flex; flex-direction:column; justify-content:flex-start; position:relative; overflow:visible;
+}
+section::before {
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(ellipse 60% 40% at 80% 10%, rgba(246,166,35,.05), transparent 60%);
+}
+
+/* ── TYPE ─────────────────────────────────────────────────── */
+.eyebrow { font-size:.72rem; font-weight:800; letter-spacing:.2em; text-transform:uppercase; color:var(--amber); margin-bottom:.25rem }
+.title { font-size:clamp(1.6rem,2.5vw,2.2rem); font-weight:900; line-height:1.1; margin-bottom:.2rem; color:var(--text) }
+.subtitle { font-size:.95rem; color:var(--muted); max-width:680px; margin-bottom:.7rem; line-height:1.5 }
+
+/* ── CARDS ─────────────────────────────────────────────────── */
+.card {
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--r);
+  padding:.8rem 1.05rem; box-shadow:var(--shadow-s);
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s, border-color .25s;
+}
+.card:hover { transform:translateY(-2px); box-shadow:var(--shadow-m); border-color:var(--border2) }
+
+.kpi-card { display:flex; flex-direction:column; gap:.12rem; padding:.7rem 1rem }
+.kpi { font-size:clamp(1.65rem,2.7vw,2.3rem); font-weight:900; line-height:1; letter-spacing:-.03em }
+.kpi-label { font-size:.74rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-top:.18rem }
+.kpi-sub { font-size:.78rem; color:var(--dim); margin-top:.07rem }
+
+/* Accent top borders */
+.c-rose   { border-top:3px solid var(--rose) }
+.c-amber  { border-top:3px solid var(--amber) }
+.c-teal   { border-top:3px solid var(--teal) }
+.c-blue   { border-top:3px solid var(--blue) }
+.c-violet { border-top:3px solid var(--violet) }
+.c-sage   { border-top:3px solid var(--sage) }
+.c-peach  { border-top:3px solid var(--peach) }
+
+/* ── GRIDS ─────────────────────────────────────────────────── */
+.g2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem }
+.g3 { display:grid; grid-template-columns:repeat(3,1fr); gap:1.1rem }
+.g4 { display:grid; grid-template-columns:repeat(4,1fr); gap:.75rem }
+.span2 { grid-column:span 2 }
+
+/* ── CHART BOX ─────────────────────────────────────────────── */
+.cbox {
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--r);
+  padding:.9rem 1.15rem; box-shadow:var(--shadow-s);
+  transition:box-shadow .25s, border-color .25s;
+  display:flex; flex-direction:column;
+}
+.cbox:hover { box-shadow:var(--shadow-m); border-color:var(--border2) }
+.ctitle { font-size:.78rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:.55rem }
+/* Alturas de gráfico RESPONSIVAS: proporcionales al alto de pantalla con tope (clamp = min, vh, max) */
+.g2 .card  { display:flex; flex-direction:column }
+.grow-mid  { flex:1 1 auto; display:flex; flex-direction:column; justify-content:space-evenly; gap:.3rem; min-height:0 }
+.grow-mid .prog-row, .grow-mid .likert-row { margin-bottom:0 }
+.chh    { position:relative; width:100%; height:clamp(180px,42vh,380px) }
+.chh-lg { position:relative; width:100%; height:clamp(200px,46vh,410px) }
+
+/* ── SECTION LABEL ─────────────────────────────────────────── */
+.slabel { font-size:.72rem; font-weight:800; letter-spacing:.15em; text-transform:uppercase; color:var(--dim); margin-bottom:.45rem }
+
+/* ── BADGE ─────────────────────────────────────────────────── */
+.badge {
+  display:inline-flex; align-items:center; gap:.3rem;
+  font-size:.72rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+  padding:.24rem .7rem; border-radius:99px;
+}
+.b-rose   { background:var(--rose-bg);   color:var(--rose);   border:1px solid var(--rose-border) }
+.b-amber  { background:var(--amber-bg);  color:var(--amber);  border:1px solid var(--amber-border) }
+.b-teal   { background:var(--teal-bg);   color:var(--teal);   border:1px solid var(--teal-border) }
+.b-blue   { background:var(--blue-bg);   color:var(--blue);   border:1px solid var(--blue-border) }
+.b-violet { background:var(--violet-bg); color:var(--violet); border:1px solid var(--violet-border) }
+
+/* ── PROGRESS BARS ─────────────────────────────────────────── */
+.prog-row { margin-bottom:.4rem }
+.prog-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:.32rem; font-size:.95rem }
+.prog-name { color:var(--text); font-weight:500 }
+.prog-val  { font-weight:700; font-size:.9rem }
+.prog-track { height:12px; background:rgba(0,0,0,.06); border-radius:99px; overflow:hidden }
+.prog-fill  { height:100%; border-radius:99px; transition:width 1.1s cubic-bezier(.34,1.56,.64,1) }
+
+/* ── ALERTS ─────────────────────────────────────────────────── */
+.alert { border-radius:var(--r2); padding:.65rem .9rem; font-size:.85rem; line-height:1.45 }
+.alert-rose   { background:var(--rose-bg);   border:1px solid var(--rose-border);   color:#c0392b }
+.alert-amber  { background:var(--amber-bg);  border:1px solid var(--amber-border);  color:#b7791f }
+.alert-teal   { background:var(--teal-bg);   border:1px solid var(--teal-border);   color:#2e7d7a }
+.alert-blue   { background:var(--blue-bg);   border:1px solid var(--blue-border);   color:#2563eb }
+.alert-violet { background:var(--violet-bg); border:1px solid var(--violet-border); color:#6d40b5 }
+
+/* ── DIVIDER ─────────────────────────────────────────────────── */
+.hr { height:1px; background:var(--border); margin:.4rem 0 }
+
+/* ── CHIPS / FILTERS ─────────────────────────────────────────── */
+.filter-bar { display:flex; gap:.45rem; flex-wrap:wrap; align-items:center; margin-bottom:1.1rem }
+.filter-label { font-size:.68rem; font-weight:700; color:var(--dim); letter-spacing:.08em; text-transform:uppercase; margin-right:.15rem }
+.chip {
+  font-size:.71rem; font-weight:600; padding:.3rem .8rem; border-radius:8px; cursor:pointer;
+  border:1px solid var(--border); background:var(--surface); color:var(--muted); transition:all .18s; user-select:none;
+  box-shadow:var(--shadow-s);
+}
+.chip:hover { background:var(--bg); color:var(--text); border-color:var(--border2) }
+.chip.on { background:var(--amber-bg); color:var(--amber); border-color:var(--amber-border); font-weight:700 }
+.chip-clear { font-size:.68rem; padding:.28rem .7rem; border-radius:6px; background:transparent; border:1px solid var(--border); color:var(--dim); cursor:pointer; transition:all .18s }
+.chip-clear:hover { color:var(--text); border-color:var(--border2) }
+
+/* ── DROPDOWNS (filtros condensados) ────────────────────────── */
+.dd-row { display:flex; gap:.65rem; align-items:flex-end; flex-wrap:wrap; margin-bottom:.75rem }
+.dd-group { display:flex; flex-direction:column; gap:.28rem; flex:1; min-width:130px }
+.dd-label { font-size:.72rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--dim) }
+.dd-select {
+  appearance:none; -webkit-appearance:none;
+  background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239ca3af' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right .65rem center;
+  border:1px solid var(--border2); border-radius:var(--r3);
+  padding:.5rem 2rem .5rem .8rem;
+  font-size:.9rem; font-weight:500; color:var(--text);
+  cursor:pointer; width:100%;
+  box-shadow:var(--shadow-s);
+  transition:border-color .18s, box-shadow .18s;
+  font-family:'Segoe UI',system-ui,sans-serif;
+}
+.dd-select:focus { outline:none; border-color:var(--amber); box-shadow:0 0 0 3px var(--amber-bg) }
+.dd-select:hover { border-color:var(--amber-border) }
+.dd-select.active { border-color:var(--amber); background-color:var(--amber-bg); color:var(--amber); font-weight:600 }
+
+.counter { display:inline-block; background:var(--amber-bg); color:var(--amber); font-size:.78rem; font-weight:700; padding:.15rem .52rem; border-radius:6px; margin-left:.3rem; border:1px solid var(--amber-border) }
+
+/* ── LIKERT CHART ────────────────────────────────────────────── */
+.likert-guide {
+  background:var(--amber-bg); border:1px solid var(--amber-border);
+  border-radius:var(--r2); padding:.55rem .8rem; font-size:.8rem; line-height:1.4;
+  color:#b7791f; margin-bottom:.5rem;
+}
+.likert-guide strong { font-weight:700 }
+.likert-legend { display:flex; gap:.85rem; font-size:.74rem; color:var(--muted); margin-bottom:.45rem; flex-wrap:wrap }
+.lleg { display:flex; align-items:center; gap:.3rem }
+.lleg-dot { width:10px; height:10px; border-radius:3px; flex-shrink:0 }
+.likert-row { display:flex; align-items:center; gap:.65rem; margin-bottom:.32rem }
+.likert-label { font-size:.84rem; color:var(--text); width:142px; flex-shrink:0; font-weight:500 }
+.likert-track {
+  flex:1; height:24px; background:var(--surface2); border-radius:6px;
+  display:flex; overflow:hidden; position:relative;
+}
+.likert-seg { height:100%; transition:width .9s ease; display:flex; align-items:center; justify-content:center; font-size:.72rem; font-weight:700; color:rgba(255,255,255,.9); overflow:hidden; white-space:nowrap }
+.likert-summary { font-size:.82rem; font-weight:700; width:66px; text-align:right; flex-shrink:0 }
+
+/* ── DERIV FLOW ─────────────────────────────────────────────── */
+.deriv-flow { display:flex; flex-direction:column; gap:.3rem }
+.deriv-row {
+  display:flex; align-items:center; gap:.7rem;
+  border-radius:var(--r2); padding:.4rem .78rem;
+  border:1px solid; transition:transform .22s, box-shadow .22s;
+}
+.deriv-row:hover { transform:translateX(3px); box-shadow:var(--shadow-m) }
+.deriv-icon { width:30px; height:30px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:.95rem; flex-shrink:0 }
+.deriv-body { flex:1 }
+.deriv-body h4 { font-size:.92rem; font-weight:700; margin-bottom:.1rem }
+.deriv-body p  { font-size:.8rem; color:var(--muted); line-height:1.36 }
+.deriv-right { display:flex; flex-direction:column; align-items:flex-end; gap:.15rem; flex-shrink:0 }
+.deriv-n { font-size:1.35rem; font-weight:900; line-height:1 }
+.deriv-pct { font-size:.74rem; color:var(--muted); font-weight:600 }
+/* Número al FRENTE de la barra (ajuste PPT slide 5) */
+.deriv-lead { width:74px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding-right:.7rem; margin-right:.1rem; border-right:1px solid rgba(0,0,0,.08) }
+.deriv-lead .deriv-n  { font-size:1.7rem }
+.deriv-lead .deriv-pct{ font-size:.72rem; margin-top:.1rem }
+
+/* ── CREDITS ─────────────────────────────────────────────────── */
+footer {
+  background:var(--text);
+  color:rgba(255,255,255,.5);
+  padding:2.5rem 3vw;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:1rem; text-align:center;
+  scroll-snap-align:start;
+}
+.footer-logo-area { display:flex; align-items:center; gap:1rem }
+.footer-logo-bar { width:3px; height:36px; background:var(--amber); border-radius:2px }
+.footer-title { font-size:.72rem; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:#fff; line-height:1.5 }
+.footer-subtitle { font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.4) }
+.footer-divider { width:48px; height:1px; background:rgba(255,255,255,.12) }
+.footer-meta { font-size:.67rem; color:rgba(255,255,255,.3); letter-spacing:.06em }
+
+/* ── EDIT TOGGLE ─────────────────────────────────────────────── */
+#editToggle {
+  position:fixed; bottom:1.2rem; right:1.2rem; z-index:9999;
+  display:flex; align-items:center; gap:.5rem;
+  background:rgba(248,246,242,0.95); border:1px solid rgba(246,166,35,.35);
+  border-radius:99px; padding:.45rem 1rem .45rem .7rem; cursor:pointer; user-select:none;
+  backdrop-filter:blur(12px); box-shadow:var(--shadow-m); transition:all .22s;
+  font-size:.73rem; font-weight:700; letter-spacing:.07em; color:var(--muted);
+}
+#editToggle:hover { border-color:rgba(246,166,35,.65); color:var(--text) }
+#editToggle .dot { width:9px; height:9px; border-radius:50%; background:rgba(0,0,0,.15); transition:background .22s; flex-shrink:0 }
+#editToggle.active { border-color:rgba(229,115,115,.5) }
+#editToggle.active .dot { background:var(--rose); box-shadow:0 0 5px var(--rose) }
+#editToggle.active .lbl { color:var(--rose) }
+
+/* ── EXPORT BUTTON ─────────────────────────────────────────── */
+#exportBtn {
+  position:fixed; bottom:4.4rem; right:1.2rem; z-index:9999;
+  display:flex; align-items:center; gap:.5rem;
+  background:rgba(248,246,242,0.95); border:1px solid var(--teal-border);
+  border-radius:99px; padding:.45rem 1rem .45rem .7rem; cursor:pointer; user-select:none;
+  backdrop-filter:blur(12px); box-shadow:var(--shadow-m); transition:all .22s;
+  font-size:.73rem; font-weight:700; letter-spacing:.07em; color:var(--muted);
+}
+#exportBtn:hover { border-color:var(--teal); color:var(--text) }
+#exportBtn.loading { opacity:.6; pointer-events:none }
+
+/* ── FLOATING TOOLBAR ─────────────────────────────────────── */
+#edToolbar {
+  position:fixed; z-index:99999;
+  background:rgba(255,255,255,0.98); border:1px solid var(--border2);
+  border-radius:10px; padding:.35rem .45rem;
+  display:none; gap:.22rem; align-items:center; flex-wrap:nowrap;
+  box-shadow:var(--shadow-l); backdrop-filter:blur(16px);
+}
+#edToolbar.show { display:flex }
+.tb-btn {
+  width:27px; height:27px; border-radius:6px; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; border:none; background:transparent; color:var(--muted);
+  font-size:.8rem; font-weight:700; transition:background .12s, color .12s;
+}
+.tb-btn:hover { background:var(--surface2); color:var(--text) }
+.tb-btn.active { background:var(--amber-bg); color:var(--amber) }
+.tb-sep { width:1px; height:18px; background:var(--border); margin:0 .12rem; flex-shrink:0 }
+.tb-color { width:17px; height:17px; border-radius:4px; cursor:pointer; border:1.5px solid var(--border); transition:transform .12s; flex-shrink:0 }
+.tb-color:hover { transform:scale(1.2) }
+
+/* ── BANNERS ─────────────────────────────────────────────────── */
+.banner {
+  position:fixed; top:62px; left:50%; transform:translateX(-50%) translateY(-10px);
+  border-radius:8px; padding:.42rem 1rem; font-size:.73rem; font-weight:600;
+  z-index:9999; opacity:0; pointer-events:none; transition:opacity .28s, transform .28s;
+  white-space:nowrap;
+}
+.banner.show { opacity:1; transform:translateX(-50%) translateY(0) }
+#saveBanner  { background:var(--sage-bg); border:1px solid var(--sage-border); color:#2e7d32 }
+#exportBanner{ background:var(--teal-bg); border:1px solid var(--teal-border); color:var(--teal) }
+
+/* ── EDIT MODE ─────────────────────────────────────────────── */
+body.edit-mode [data-ed] { outline:1.5px dashed rgba(246,166,35,.4); border-radius:3px; cursor:text; transition:outline .18s, background .18s }
+body.edit-mode [data-ed]:hover { outline-color:rgba(246,166,35,.75); background:rgba(246,166,35,.04) }
+body.edit-mode [data-ed]:focus { outline:2px solid var(--amber); background:var(--amber-bg) }
+@keyframes edPulse { 0%,100%{outline-color:var(--amber)} 50%{outline-color:rgba(246,166,35,.2)} }
+body.edit-mode [data-ed]:focus { animation:edPulse 2s ease infinite }
+
+/* ── RESPONSIVE ─────────────────────────────────────────────── */
+@media(max-width:768px){
+  .g2,.g3,.g4 { grid-template-columns:1fr }
+  .pres-cols { column-count:1 }
+  .span2 { grid-column:span 1 }
+  section { padding:70px 1rem 2rem }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <span class="nav-brand">Actualización Sociodemográfica · 2026</span>
+  <div class="nav-items">
+    <div class="nav-item active" id="ni0" onclick="goTo(0)">Presentación</div>
+    <div class="nav-item" id="ni1" onclick="goTo(1)">Composición</div>
+    <div class="nav-item" id="ni2" onclick="goTo(2)">Caracterización</div>
+    <div class="nav-item" id="ni3" onclick="goTo(3)">Factores</div>
+    <div class="nav-item" id="ni4" onclick="goTo(4)">Protocolo</div>
+  </div>
+  <div class="nav-dots">
+    <div class="nav-dot active" id="nd0" onclick="goTo(0)"></div>
+    <div class="nav-dot" id="nd1" onclick="goTo(1)"></div>
+    <div class="nav-dot" id="nd2" onclick="goTo(2)"></div>
+    <div class="nav-dot" id="nd3" onclick="goTo(3)"></div>
+    <div class="nav-dot" id="nd4" onclick="goTo(4)"></div>
+  </div>
+</nav>
+
+<!-- ══════════ S1: PRESENTACIÓN ══════════ -->
+<section id="s0">
+  <p class="eyebrow">01 · Presentación</p>
+  <h1 class="title" style="font-size:clamp(1.45rem,2.5vw,2.15rem);max-width:1120px;line-height:1.12">Reporte: Actualización Sociodemográfica y Socioafectiva + Factores de Riesgo de Retención en Cohortes Superiores</h1>
+  <p class="subtitle">Dirección de Calidad de los Aprendizajes · Vicerrectoría Académica · Universidad Autónoma de Chile · 2026.</p>
+
+  <!-- Tarjeta de Presentación + Distribución por sede (info de la foto, al inicio) -->
+  <div class="card" style="margin-top:.9rem;margin-bottom:.85rem">
+    <div class="slabel">Presentación</div>
+    <div class="pres-cols" style="column-count:2;column-gap:2.2rem">
+      <p style="font-size:.96rem;line-height:1.58;color:var(--text);margin-bottom:.6rem;break-inside:avoid">
+        El presente Reporte se basa en el <strong>Estudio sobre la actualización sociodemográfica y la identificación de factores de riesgo de retención</strong> para cohortes superiores. El Estudio utilizó una encuesta con preguntas cerradas y abiertas, a través de un muestreo por accesibilidad. La duración del estudio se extiende entre <strong>junio y agosto del 2026</strong>.
+      </p>
+      <p style="font-size:.96rem;line-height:1.58;color:var(--text);margin-bottom:.6rem;break-inside:avoid">La población es de 20.474 estudiantes de pregrado de todas las jornadas y modalidades. De ellos, 967 respondió la encuesta en la 1ª etapa del estudio (junio 2026). De este 1er grupo, se identificó a 99 estudiantes que presentan un alto riesgo de deserción, ya que manifestaron explícitamente sentirse en duda frente a su continuidad de estudios.</p>
+      <p style="font-size:.96rem;line-height:1.58;color:var(--muted);break-inside:avoid">
+        A continuación, se presenta la <em>caracterización</em>, los <em>factores incidentes</em> y el <em>protocolo de actuación</em> para este grupo de 99 estudiantes.
+      </p>
+    </div>
+  </div>
+
+  <!-- KPIs Campus (duplicado · idéntico a Composición) -->
+  <div class="g3">
+    <div class="card kpi-card c-blue">
+      <div class="kpi" style="color:var(--blue);font-size:2.1rem">20.474</div>
+      <div class="kpi-label">N° ESTUDIANTES COHORTES SUPERIORES</div>
+    </div>
+    <div class="card kpi-card c-teal">
+      <div class="kpi" style="color:var(--teal);font-size:2.1rem">967</div>
+      <div class="kpi-label">HAN RESPONDIDO LA ENCUESTA</div>
+      <div class="kpi-sub">4,7% del total de estudiantes objetivo</div>
+    </div>
+    <div class="card kpi-card c-violet">
+      <div class="kpi" style="color:var(--violet);font-size:2.1rem">99</div>
+      <div class="kpi-label">GRUPO PRIORITARIO - JUNIO</div>
+      <div class="kpi-sub">10,2% de quienes han respondido</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ S2: COBERTURA ══════════ -->
+<section id="s1">
+  <p class="eyebrow">02 · Composición General del Grupo</p>
+  <h1 class="title">Composición - Grupo 1</h1>
+  <p class="subtitle">Composición general del grupo de 99 estudiantes en riesgo, distribuidos en 4 campus y 7 facultades.</p>
+
+  <!-- KPIs Campus -->
+  <div class="g4" style="margin-bottom:.8rem;grid-template-columns:repeat(5,1fr)">
+    <div class="card kpi-card c-rose">
+      <div class="kpi" style="color:var(--rose);font-size:2.1rem">99</div>
+      <div class="kpi-label">Total del grupo</div>
+      <div class="kpi-sub">Estudiantes en riesgo</div>
+    </div>
+    <div class="card kpi-card c-blue">
+      <div class="kpi" style="color:var(--blue);font-size:2.1rem">34</div>
+      <div class="kpi-label">Talca</div>
+      <div class="kpi-sub">34,3% de la muestra</div>
+    </div>
+    <div class="card kpi-card c-teal">
+      <div class="kpi" style="color:var(--teal);font-size:2.1rem">32</div>
+      <div class="kpi-label">Providencia</div>
+      <div class="kpi-sub">32,3% de la muestra</div>
+    </div>
+    <div class="card kpi-card c-violet">
+      <div class="kpi" style="color:var(--violet);font-size:2.1rem">17</div>
+      <div class="kpi-label">Temuco</div>
+      <div class="kpi-sub">17,2% de la muestra</div>
+    </div>
+    <div class="card kpi-card c-peach">
+      <div class="kpi" style="color:var(--peach);font-size:2.1rem">16</div>
+      <div class="kpi-label">San Miguel</div>
+      <div class="kpi-sub">16,2% de la muestra</div>
+    </div>
+  </div>
+
+  <div class="g2 grow">
+    <!-- Distribución por Facultad -->
+    <div class="cbox">
+      <div class="ctitle">Distribución por Facultad</div>
+      <div class="chh"><canvas id="facChart"></canvas></div>
+    </div>
+
+    <!-- Carreras por Facultad — interactivo -->
+    <div class="cbox">
+      <div class="ctitle">Carreras por Facultad <span id="facSelectedLabel" class="counter" style="text-transform:none;letter-spacing:0">Selecciona una facultad →</span></div>
+      <div id="facHint" style="font-size:.8rem;color:var(--muted);flex:1;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 1rem">
+        Haz clic en una barra del gráfico de Facultad para ver sus carreras.
+      </div>
+      <div class="chh" id="carreraWrap" style="display:none"><canvas id="carreraChart"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ S3: CARACTERIZACIÓN ══════════ -->
+<section id="s2">
+  <p class="eyebrow">03 · Caracterización de Variables Críticas</p>
+  <h1 class="title">Variables Sociodemográficas y Socioafectivas Críticas</h1>
+  <p class="subtitle">Perfil sociodemográfico y bienestar académico declarado del grupo de 99 estudiantes en riesgo.</p>
+
+  <div class="g2 grow">
+    <!-- Perfil sociodemográfico -->
+    <div class="card">
+      <div class="slabel">Perfil sociodemográfico · n=99</div>
+
+      <div class="likert-guide">
+        <strong>📖 Cómo leer:</strong> cada barra muestra cuántos de los 99 estudiantes declaran esa condición; a la derecha, el conteo y su porcentaje.
+      </div>
+
+      <div class="grow-mid">
+      <div class="prog-row">
+        <div class="prog-head"><span class="prog-name">Trabajan mientras estudian</span><span class="prog-val" style="color:var(--blue)">47 · 47,5%</span></div>
+        <div class="prog-track"><div class="prog-fill" style="width:47.5%;background:linear-gradient(90deg,var(--blue),#93c5fd)"></div></div>
+      </div>
+      <div class="prog-row">
+        <div class="prog-head"><span class="prog-name">Responsabilidades de cuidado</span><span class="prog-val" style="color:var(--teal)">41 · 41,4%</span></div>
+        <div class="prog-track"><div class="prog-fill" style="width:41.4%;background:linear-gradient(90deg,var(--teal),#99f6e4)"></div></div>
+      </div>
+      <div class="prog-row">
+        <div class="prog-head"><span class="prog-name">Sostén económico del hogar</span><span class="prog-val" style="color:var(--violet)">24 · 24,2%</span></div>
+        <div class="prog-track"><div class="prog-fill" style="width:24.2%;background:linear-gradient(90deg,var(--violet),#c4b5fd)"></div></div>
+      </div>
+      <div class="prog-row">
+        <div class="prog-head"><span class="prog-name">Madre o Padre</span><span class="prog-val" style="color:var(--amber)">10 · 10,1%</span></div>
+        <div class="prog-track"><div class="prog-fill" style="width:10.1%;background:linear-gradient(90deg,var(--amber),#fde68a)"></div></div>
+      </div>
+      <div class="prog-row">
+        <div class="prog-head"><span class="prog-name">Sin computador/internet</span><span class="prog-val" style="color:var(--rose)">19 · 19,2%</span></div>
+        <div class="prog-track"><div class="prog-fill" style="width:19.2%;background:linear-gradient(90deg,var(--rose),#fca5a5)"></div></div>
+      </div>
+      </div>
+      <div class="hr"></div>
+      <div class="alert alert-teal" style="font-size:.7rem">
+        <strong>Nota:</strong> Sostén del hogar se estima como la intersección de estudiantes que trabajan <em>y</em> tienen responsabilidades de cuidado simultáneas.
+      </div>
+    </div>
+
+    <!-- Bienestar académico — gráfico de barras apiladas con guía -->
+    <div class="card">
+      <div class="slabel">Bienestar académico declarado</div>
+
+      <div class="likert-guide">
+        <strong>📖 Cómo leer:</strong> cada barra es la distribución de respuestas (rojo = negativo → verde = positivo). El % a la derecha resume las respuestas negativas (en desacuerdo o muy en desacuerdo).
+      </div>
+
+      <div class="likert-legend">
+        <div class="lleg"><div class="lleg-dot" style="background:#E57373"></div><span>Muy en desacuerdo</span></div>
+        <div class="lleg"><div class="lleg-dot" style="background:#F0956A"></div><span>En desacuerdo</span></div>
+        <div class="lleg"><div class="lleg-dot" style="background:#D4C5A9"></div><span>Neutral</span></div>
+        <div class="lleg"><div class="lleg-dot" style="background:#81B89A"></div><span>De acuerdo</span></div>
+        <div class="lleg"><div class="lleg-dot" style="background:#4DB6AC"></div><span>Muy de acuerdo</span></div>
+      </div>
+
+      <div class="grow-mid">
+      <!-- Organiza tiempo: MD=17, D=26, N=39, A=14, MA=3 -->
+      <div class="likert-row">
+        <span class="likert-label">Organiza su tiempo</span>
+        <div class="likert-track">
+          <div class="likert-seg" style="width:17.2%;background:#E57373" title="Muy en desacuerdo: 17">17%</div>
+          <div class="likert-seg" style="width:26.3%;background:#F0956A" title="En desacuerdo: 26">26%</div>
+          <div class="likert-seg" style="width:39.4%;background:#D4C5A9" title="Neutral: 39"></div>
+          <div class="likert-seg" style="width:14.1%;background:#81B89A" title="De acuerdo: 14"></div>
+          <div class="likert-seg" style="width:3.0%;background:#4DB6AC" title="Muy de acuerdo: 3"></div>
+        </div>
+        <span class="likert-summary" style="color:var(--rose)">43% neg.</span>
+      </div>
+
+      <!-- Motivado: MD=19, D=25, N=31, A=20, MA=4 -->
+      <div class="likert-row">
+        <span class="likert-label">Se siente motivado</span>
+        <div class="likert-track">
+          <div class="likert-seg" style="width:19.2%;background:#E57373" title="Muy en desacuerdo: 19">19%</div>
+          <div class="likert-seg" style="width:25.2%;background:#F0956A" title="En desacuerdo: 25">25%</div>
+          <div class="likert-seg" style="width:31.3%;background:#D4C5A9" title="Neutral: 31"></div>
+          <div class="likert-seg" style="width:20.2%;background:#81B89A" title="De acuerdo: 20"></div>
+          <div class="likert-seg" style="width:4.0%;background:#4DB6AC" title="Muy de acuerdo: 4"></div>
+        </div>
+        <span class="likert-summary" style="color:var(--rose)">44% neg.</span>
+      </div>
+
+      <!-- Preparado: MD=13, D=26, N=35, A=21, MA=4 -->
+      <div class="likert-row">
+        <span class="likert-label">Se siente preparado</span>
+        <div class="likert-track">
+          <div class="likert-seg" style="width:13.1%;background:#E57373" title="Muy en desacuerdo: 13">13%</div>
+          <div class="likert-seg" style="width:26.3%;background:#F0956A" title="En desacuerdo: 26">26%</div>
+          <div class="likert-seg" style="width:35.4%;background:#D4C5A9" title="Neutral: 35"></div>
+          <div class="likert-seg" style="width:21.2%;background:#81B89A" title="De acuerdo: 21"></div>
+          <div class="likert-seg" style="width:4.0%;background:#4DB6AC" title="Muy de acuerdo: 4"></div>
+        </div>
+        <span class="likert-summary" style="color:var(--peach)">39% neg.</span>
+      </div>
+
+      <!-- Feliz: MD=26, D=26, N=33, A=13, MA=1 -->
+      <div class="likert-row">
+        <span class="likert-label">Feliz en la universidad</span>
+        <div class="likert-track">
+          <div class="likert-seg" style="width:26.3%;background:#E57373" title="Muy en desacuerdo: 26">26%</div>
+          <div class="likert-seg" style="width:26.3%;background:#F0956A" title="En desacuerdo: 26">26%</div>
+          <div class="likert-seg" style="width:33.3%;background:#D4C5A9" title="Neutral: 33"></div>
+          <div class="likert-seg" style="width:13.1%;background:#81B89A" title="De acuerdo: 13"></div>
+          <div class="likert-seg" style="width:1.0%;background:#4DB6AC" title="Muy de acuerdo: 1"></div>
+        </div>
+        <span class="likert-summary" style="color:var(--rose)">52% neg.</span>
+      </div>
+      </div>
+
+      <div class="hr"></div>
+      <div class="alert alert-amber" style="font-size:.7rem">Insight clave: Más del 50% no se siente feliz en la universidad. La desmotivación supera ampliamente la motivación positiva.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ S4: FACTORES INCIDENTES ══════════ -->
+<section id="s3">
+  <p class="eyebrow">04 · Factores Incidentes en la Deserción</p>
+  <h1 class="title">Factores Incidentes</h1>
+  <p class="subtitle">Identifica los factores incidentes declarados por los estudiantes, filtrando por campus, facultad y carrera.</p>
+
+  <!-- Filtros condensados -->
+  <div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--r);padding:.7rem 1.1rem;margin-bottom:.8rem">
+    <div class="dd-row">
+      <div class="dd-group">
+        <label class="dd-label" for="dd_campus">Campus</label>
+        <select id="dd_campus" class="dd-select" onchange="onDropdownChange()">
+          <option value="">Todos los campus</option>
+          <option value="Talca">Talca</option>
+          <option value="Providencia">Providencia</option>
+          <option value="Temuco">Temuco</option>
+          <option value="San Miguel">San Miguel</option>
+        </select>
+      </div>
+      <div class="dd-group">
+        <label class="dd-label" for="dd_fac">Facultad</label>
+        <select id="dd_fac" class="dd-select" onchange="onDropdownChange()">
+          <option value="">Todas las facultades</option>
+          <option value="Fac. Cs de la Salud">Cs. de la Salud</option>
+          <option value="Fac. Cs Sociales y Humanidades">Cs. Sociales y Humanidades</option>
+          <option value="Fac. Derecho">Derecho</option>
+          <option value="Fac. Educación">Educación</option>
+          <option value="Fac. Administración y Negocios">Adm. y Negocios</option>
+          <option value="Fac. Ingeniería">Ingeniería</option>
+          <option value="Fac. Arquitec. y Construcción">Arq. y Construcción</option>
+        </select>
+      </div>
+      <div class="dd-group">
+        <label class="dd-label" for="dd_carrera">Carrera</label>
+        <select id="dd_carrera" class="dd-select" onchange="onDropdownChange()">
+          <option value="">Todas las carreras</option>
+        </select>
+      </div>
+      <button class="chip-clear" onclick="clearAllFilters()" style="margin-bottom:1px;align-self:flex-end;white-space:nowrap">✕ Limpiar</button>
+    </div>
+    <div style="font-size:.74rem;color:var(--muted)">
+      Mostrando <span id="countLabel" style="color:var(--amber);font-weight:700">99</span> estudiantes
+      <span id="filterSummary" style="color:var(--dim)"></span>
+    </div>
+  </div>
+
+  <!-- Gráfico principal -->
+  <div class="cbox grow" style="max-width:100%">
+    <div class="ctitle">Factores incidentes declarados <span id="ctitle_main" class="counter">n=99</span></div>
+    <div class="chh-lg"><canvas id="apoyoBar"></canvas></div>
+  </div>
+</section>
+
+<!-- ══════════ S5: PROTOCOLO DE ACTUACIÓN ══════════ -->
+<section id="s4">
+  <p class="eyebrow">05 · Protocolo de Actuación General</p>
+  <h1 class="title">Protocolo de Actuación General</h1>
+  <p class="subtitle" style="max-width:880px">El Protocolo consiste en dos <strong>ETAPAS</strong>: (1) derivación de los estudiantes en riesgo a las áreas de la Universidad responsables de los apoyos asociados a los <em>Factores Incidentes</em>, y (2) contacto con el estudiante por parte del área institucional responsable, plan de acción para la reducción del riesgo y seguimiento activo.</p>
+
+  <div class="alert alert-teal" style="margin-bottom:.7rem">
+    <strong>🎯 Derivación automática SAAC-ZERO:</strong> 35 estudiantes (35,4% de la muestra) que manifestaron necesidad de apoyo en <em>Técnicas de Estudio</em> y/o <em>Organización del Tiempo</em> son derivados automáticamente al programa SAAC-ZERO para acompañamiento académico inmediato.
+  </div>
+
+  <!-- ETAPA 1 -->
+  <div class="slabel" style="margin-bottom:.45rem">ETAPA 1: Derivación por tipología de Factor Incidente</div>
+  <div class="deriv-flow grow">
+
+    <div class="deriv-row" style="background:var(--teal-bg);border-color:var(--teal-border)">
+      <div class="deriv-lead"><span class="deriv-n" style="color:var(--teal)">35</span><span class="deriv-pct">35,4%</span></div>
+      <div class="deriv-icon" style="background:var(--teal-bg)">🎯</div>
+      <div class="deriv-body">
+        <h4 style="color:var(--teal)">SAAC-ZERO</h4>
+        <p>Requieren apoyo en Técnicas de Estudio o Gestión del Tiempo → Derivación automática al programa SAAC-ZERO → Contacto, plan de acción y seguimiento.</p>
+      </div>
+      <span class="badge b-teal">Automático</span>
+    </div>
+
+    <div class="deriv-row" style="background:var(--rose-bg);border-color:var(--rose-border)">
+      <div class="deriv-lead"><span class="deriv-n" style="color:var(--rose)">56</span><span class="deriv-pct">56,6%</span></div>
+      <div class="deriv-icon" style="background:var(--rose-bg)">🧠</div>
+      <div class="deriv-body">
+        <h4 style="color:var(--rose)">Psicológico</h4>
+        <p>Necesidad de apoyo psicológico declarada → Derivación a Experiencia UA → Contacto, plan de acción, seguimiento.</p>
+      </div>
+      <span class="badge b-rose">Prioritario</span>
+    </div>
+
+    <div class="deriv-row" style="background:var(--blue-bg);border-color:var(--blue-border)">
+      <div class="deriv-lead"><span class="deriv-n" style="color:var(--blue)">26</span><span class="deriv-pct">26,3%</span></div>
+      <div class="deriv-icon" style="background:var(--blue-bg)">🏛️</div>
+      <div class="deriv-body">
+        <h4 style="color:var(--blue)">Vocación y Aspectos Académicos</h4>
+        <p>Apoyo desde Dirección de Carrera requerido → Reunión con Director/a de carrera y/o secretario/a de estudio → Contacto, plan de acción, seguimiento.</p>
+      </div>
+      <span class="badge b-blue">Institucional</span>
+    </div>
+
+    <div class="deriv-row" style="background:var(--violet-bg);border-color:var(--violet-border)">
+      <div class="deriv-lead"><span class="deriv-n" style="color:var(--violet)">3</span><span class="deriv-pct">3,0%</span></div>
+      <div class="deriv-icon" style="background:var(--violet-bg)">🌈</div>
+      <div class="deriv-body">
+        <h4 style="color:var(--violet)">Equidad de Género, Diversidad e Inclusión</h4>
+        <p>Necesidad en diversidad/inclusión → Derivación a Unidad de Equidad de Género, Diversidad e Inclusión → Contacto, plan de acción, seguimiento.</p>
+      </div>
+      <span class="badge b-violet">Especializado</span>
+    </div>
+
+    <div class="deriv-row" style="background:var(--amber-bg);border-color:var(--amber-border)">
+      <div class="deriv-lead"><span class="deriv-n" style="color:var(--amber)">27</span><span class="deriv-pct">27,3%</span></div>
+      <div class="deriv-icon" style="background:var(--amber-bg)">📋</div>
+      <div class="deriv-body">
+        <h4 style="color:var(--amber)">Otro tipo de apoyo</h4>
+        <p>Necesidades no categorizadas en los tipos anteriores → Evaluación caso a caso por Coordinador/a de Apoyo al Aprendizaje de cada sede → Contacto, plan de acción, seguimiento</p>
+      </div>
+      <span class="badge b-amber">Evaluación</span>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════ FOOTER / CRÉDITOS ══════════ -->
+<footer id="s5">
+  <div class="footer-logo-area">
+    <div class="footer-logo-bar"></div>
+    <div>
+      <div class="footer-title">Dirección de Calidad de los Aprendizajes</div>
+      <div class="footer-subtitle">Vicerrectoría Académica · Universidad Autónoma de Chile</div>
+    </div>
+  </div>
+  <div class="footer-divider"></div>
+  <div class="footer-meta">Actualización Sociodemográfica · Cohortes Superiores · 2026 · n = 99 estudiantes</div>
+</footer>
+
+<!-- APP SCRIPT · datos + gráficos + filtros + navegación · se MANTIENE en la versión pública -->
+<script id="appScript">
+
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const DATA = [{"campus":"Temuco","fac":"Fac. Cs Sociales y Humanidades","carrera":"Trabajo Social","cohorte":"202210","trabaja":1,"hijos":0,"cuidador":0,"salud":"No","compu":1,"apoyo_ua":1,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"De acuerdo","motivado":"De acuerdo","preparado":"De acuerdo","feliz":"De acuerdo","sosten":0,"saac_zero":0},{"campus":"Providencia","fac":"Fac. Cs Sociales y Humanidades","carrera":"Psicología","cohorte":"202310","trabaja":1,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":1,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Muy en desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":0,"saac_zero":1},{"campus":"Providencia","fac":"Fac. Cs de la Salud","carrera":"Química y Farmacia","cohorte":"202410","trabaja":1,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":1,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"En desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":0,"saac_zero":0},{"campus":"Talca","fac":"Fac. Educación","carrera":"Pedagogía en Inglés","cohorte":"202410","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud física","compu":1,"apoyo_ua":0,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":1,"org_tiempo":"Muy en desacuerdo","motivado":"Muy en desacuerdo","preparado":"Muy en desacuerdo","feliz":"Muy en desacuerdo","sosten":0,"saac_zero":0},{"campus":"Talca","fac":"Fac. Cs de la Salud","carrera":"Química y Farmacia","cohorte":"202410","trabaja":1,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":1,"org_tiempo":"De acuerdo","motivado":"Muy en desacuerdo","preparado":"Muy en desacuerdo","feliz":"Muy en desacuerdo","sosten":0,"saac_zero":0},{"campus":"Providencia","fac":"Fac. Cs de la Salud","carrera":"Fonoaudiología","cohorte":"202510","trabaja":1,"hijos":0,"cuidador":0,"salud":"No","compu":0,"apoyo_ua":0,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":1,"org_tiempo":"En desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"De acuerdo","sosten":0,"saac_zero":0},{"campus":"Talca","fac":"Fac. Educación","carrera":"Pedagogía en Ed. Diferencial","cohorte":"202510","trabaja":0,"hijos":1,"cuidador":1,"salud":"Sí, de salud mental","compu":0,"apoyo_ua":1,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"De acuerdo","motivado":"En desacuerdo","preparado":"En desacuerdo","feliz":"En desacuerdo","sosten":0,"saac_zero":0},{"campus":"Talca","fac":"Fac. Cs Sociales y Humanidades","carrera":"Psicología","cohorte":"201810","trabaja":1,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":1,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":1,"ap_otro":1,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"De acuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":0,"saac_zero":0},{"campus":"Providencia","fac":"Fac. Cs de la Salud","carrera":"Terapia Ocupacional","cohorte":"202410","trabaja":0,"hijos":0,"cuidador":1,"salud":"No","compu":1,"apoyo_ua":1,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"En desacuerdo","preparado":"En desacuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":0,"saac_zero":0},{"campus":"Providencia","fac":"Fac. Administración y Negocios","carrera":"Ingeniería Comercial","cohorte":"202410","trabaja":1,"hijos":0,"cuidador":1,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":0,"ap_dir":0,"ap_tecnicas":1,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"En desacuerdo","preparado":"En desacuerdo","feliz":"En desacuerdo","sosten":1,"saac_zero":1},{"campus":"Talca","fac":"Fac. Cs Sociales y Humanidades","carrera":"Psicología","cohorte":"202510","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":0,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":1,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"En desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"Muy en desacuerdo","sosten":0,"saac_zero":1},{"campus":"San Miguel","fac":"Fac. Educación","carrera":"Pedagogía en Educación Básica","cohorte":"202510","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":1,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":1,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"De acuerdo","sosten":0,"saac_zero":1},{"campus":"Providencia","fac":"Fac. Ingeniería","carrera":"Ingeniería Civil Industrial","cohorte":"202510","trabaja":1,"hijos":0,"cuidador":0,"salud":"No","compu":1,"apoyo_ua":1,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"De acuerdo","motivado":"Muy de acuerdo","preparado":"De acuerdo","feliz":"De acuerdo","sosten":0,"saac_zero":0},{"campus":"Temuco","fac":"Fac. Cs de la Salud","carrera":"Enfermería","cohorte":"202510","trabaja":0,"hijos":0,"cuidador":0,"salud":"No","compu":0,"apoyo_ua":0,"ap_psico":0,"ap_dir":1,"ap_tecnicas":1,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"De acuerdo","preparado":"En desacuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":0,"saac_zero":1},{"campus":"Talca","fac":"Fac. Cs de la Salud","carrera":"Química y Farmacia","cohorte":"202510","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":0,"apoyo_ua":1,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"En desacuerdo","motivado":"En desacuerdo","preparado":"En desacuerdo","feliz":"En desacuerdo","sosten":0,"saac_zero":0},{"campus":"Providencia","fac":"Fac. Cs Sociales y Humanidades","carrera":"P. Profesional y Com. Integral","cohorte":"202510","trabaja":0,"hijos":0,"cuidador":0,"salud":"No","compu":1,"apoyo_ua":0,"ap_psico":0,"ap_dir":0,"ap_tecnicas":1,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"En desacuerdo","motivado":"Muy en desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"En desacuerdo","sosten":0,"saac_zero":1},{"campus":"Talca","fac":"Fac. Cs de la Salud","carrera":"Química y Farmacia","cohorte":"202510","trabaja":0,"hijos":0,"cuidador":0,"salud":"No","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"En desacuerdo","motivado":"En desacuerdo","preparado":"En desacuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":0,"saac_zero":1},{"campus":"Providencia","fac":"Fac. Cs de la Salud","carrera":"Nutrición y Dietética","cohorte":"202310","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud física","compu":1,"apoyo_ua":0,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":1,"org_tiempo":"En desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"En desacuerdo","sosten":0,"saac_zero":0},{"campus":"Talca","fac":"Fac. Derecho","carrera":"Derecho","cohorte":"202510","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":0,"apoyo_ua":1,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Muy en desacuerdo","motivado":"Muy en desacuerdo","preparado":"Muy en desacuerdo","feliz":"Muy en desacuerdo","sosten":0,"saac_zero":0},{"campus":"Talca","fac":"Fac. Cs de la Salud","carrera":"Fonoaudiología","cohorte":"202410","trabaja":0,"hijos":0,"cuidador":1,"salud":"Sí, de salud mental","compu":0,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":1,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"De acuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"En desacuerdo","sosten":0,"saac_zero":1},{"campus":"Talca","fac":"Fac. Educación","carrera":"Pedagogía en Educación Física","cohorte":"202410","trabaja":1,"hijos":0,"cuidador":0,"salud":"No","compu":0,"apoyo_ua":0,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":1,"org_tiempo":"En desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"En desacuerdo","sosten":0,"saac_zero":0},{"campus":"Providencia","fac":"Fac. Cs de la Salud","carrera":"Kinesiología","cohorte":"202510","trabaja":1,"hijos":0,"cuidador":1,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":1,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"De acuerdo","preparado":"De acuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":1,"saac_zero":1},{"campus":"Talca","fac":"Fac. Cs de la Salud","carrera":"Química y Farmacia","cohorte":"202510","trabaja":1,"hijos":0,"cuidador":0,"salud":"No","compu":1,"apoyo_ua":1,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"De acuerdo","feliz":"En desacuerdo","sosten":0,"saac_zero":0},{"campus":"Talca","fac":"Fac. Cs de la Salud","carrera":"Química y Farmacia","cohorte":"202310","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":1,"org_tiempo":"En desacuerdo","motivado":"Muy en desacuerdo","preparado":"En desacuerdo","feliz":"Muy en desacuerdo","sosten":0,"saac_zero":0},{"campus":"Providencia","fac":"Fac. Derecho","carrera":"Derecho","cohorte":"202520","trabaja":1,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":1,"ap_tecnicas":1,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"En desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":0,"saac_zero":1},{"campus":"Providencia","fac":"Fac. Ingeniería","carrera":"Ingeniería Civil Informática","cohorte":"202310","trabaja":1,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":1,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"De acuerdo","feliz":"En desacuerdo","sosten":0,"saac_zero":0},{"campus":"San Miguel","fac":"Fac. Cs Sociales y Humanidades","carrera":"Psicología","cohorte":"202410","trabaja":1,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":0,"apoyo_ua":0,"ap_psico":1,"ap_dir":1,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"En desacuerdo","motivado":"De acuerdo","preparado":"En desacuerdo","feliz":"En desacuerdo","sosten":0,"saac_zero":0},{"campus":"Providencia","fac":"Fac. Cs de la Salud","carrera":"Química y Farmacia","cohorte":"202310","trabaja":1,"hijos":0,"cuidador":1,"salud":"Sí, de salud mental","compu":0,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":1,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":1,"org_tiempo":"En desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"De acuerdo","sosten":1,"saac_zero":1},{"campus":"Providencia","fac":"Fac. Cs de la Salud","carrera":"Medicina","cohorte":"202210","trabaja":0,"hijos":0,"cuidador":1,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":1,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"De acuerdo","motivado":"En desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"Muy en desacuerdo","sosten":0,"saac_zero":0},{"campus":"Talca","fac":"Fac. Administración y Negocios","carrera":"Ing. en Control de Gestión (D)","cohorte":"202410","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":0,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":1,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"En desacuerdo","motivado":"En desacuerdo","preparado":"En desacuerdo","feliz":"Muy en desacuerdo","sosten":0,"saac_zero":1},{"campus":"Temuco","fac":"Fac. Cs de la Salud","carrera":"Odontología","cohorte":"201810","trabaja":1,"hijos":0,"cuidador":1,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":1,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"En desacuerdo","sosten":1,"saac_zero":1},{"campus":"Providencia","fac":"Fac. Ingeniería","carrera":"Ingeniería Civil Industrial","cohorte":"202510","trabaja":1,"hijos":0,"cuidador":0,"salud":"Sí, de salud física","compu":1,"apoyo_ua":0,"ap_psico":0,"ap_dir":1,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Muy de acuerdo","motivado":"Muy de acuerdo","preparado":"Muy en desacuerdo","feliz":"Muy en desacuerdo","sosten":0,"saac_zero":0},{"campus":"Talca","fac":"Fac. Cs de la Salud","carrera":"Enfermería","cohorte":"202210","trabaja":1,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":1,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"En desacuerdo","motivado":"Muy en desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"En desacuerdo","sosten":0,"saac_zero":0},{"campus":"Temuco","fac":"Fac. Cs de la Salud","carrera":"Enfermería","cohorte":"202210","trabaja":1,"hijos":1,"cuidador":1,"salud":"No","compu":1,"apoyo_ua":0,"ap_psico":0,"ap_dir":1,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Muy en desacuerdo","motivado":"De acuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"Muy en desacuerdo","sosten":1,"saac_zero":0},{"campus":"San Miguel","fac":"Fac. Cs de la Salud","carrera":"Terapia Ocupacional","cohorte":"202310","trabaja":1,"hijos":0,"cuidador":1,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":1,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":1,"org_tiempo":"En desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"En desacuerdo","feliz":"Muy en desacuerdo","sosten":1,"saac_zero":0},{"campus":"Providencia","fac":"Fac. Cs Sociales y Humanidades","carrera":"Psicología","cohorte":"202520","trabaja":1,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"En desacuerdo","preparado":"Muy de acuerdo","feliz":"En desacuerdo","sosten":0,"saac_zero":1},{"campus":"Providencia","fac":"Fac. Cs de la Salud","carrera":"Química y Farmacia","cohorte":"202410","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":0,"apoyo_ua":0,"ap_psico":0,"ap_dir":1,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":0,"saac_zero":0},{"campus":"Talca","fac":"Fac. Educación","carrera":"Pedagogía en Educación Básica","cohorte":"202110","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":1,"ap_tiempo":1,"ap_diversidad":1,"ap_otro":0,"org_tiempo":"Muy en desacuerdo","motivado":"En desacuerdo","preparado":"En desacuerdo","feliz":"En desacuerdo","sosten":0,"saac_zero":1},{"campus":"Providencia","fac":"Fac. Cs de la Salud","carrera":"Terapia Ocupacional","cohorte":"202210","trabaja":0,"hijos":0,"cuidador":0,"salud":"No","compu":1,"apoyo_ua":1,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"De acuerdo","motivado":"De acuerdo","preparado":"De acuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":0,"saac_zero":0},{"campus":"San Miguel","fac":"Fac. Cs Sociales y Humanidades","carrera":"Trabajo Social","cohorte":"202010","trabaja":0,"hijos":0,"cuidador":1,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":1,"ap_tecnicas":1,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"De acuerdo","motivado":"En desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"En desacuerdo","sosten":0,"saac_zero":1},{"campus":"Providencia","fac":"Fac. Derecho","carrera":"Derecho","cohorte":"202510","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Muy en desacuerdo","motivado":"Muy en desacuerdo","preparado":"Muy en desacuerdo","feliz":"Muy en desacuerdo","sosten":0,"saac_zero":1},{"campus":"Temuco","fac":"Fac. Cs Sociales y Humanidades","carrera":"Trabajo Social","cohorte":"202110","trabaja":1,"hijos":1,"cuidador":1,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"En desacuerdo","motivado":"En desacuerdo","preparado":"En desacuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":1,"saac_zero":1},{"campus":"Temuco","fac":"Fac. Cs de la Salud","carrera":"Enfermería","cohorte":"202310","trabaja":1,"hijos":0,"cuidador":1,"salud":"Sí, de salud mental","compu":0,"apoyo_ua":0,"ap_psico":1,"ap_dir":1,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":1,"org_tiempo":"En desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"En desacuerdo","feliz":"Muy en desacuerdo","sosten":1,"saac_zero":0},{"campus":"San Miguel","fac":"Fac. Cs de la Salud","carrera":"Fonoaudiología","cohorte":"202510","trabaja":1,"hijos":0,"cuidador":1,"salud":"No","compu":1,"apoyo_ua":1,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":1,"saac_zero":0},{"campus":"Temuco","fac":"Fac. Cs Sociales y Humanidades","carrera":"Trabajo Social","cohorte":"202410","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"En desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"En desacuerdo","sosten":0,"saac_zero":0},{"campus":"Talca","fac":"Fac. Cs Sociales y Humanidades","carrera":"Psicología","cohorte":"202410","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Muy en desacuerdo","motivado":"Muy en desacuerdo","preparado":"De acuerdo","feliz":"De acuerdo","sosten":0,"saac_zero":1},{"campus":"Temuco","fac":"Fac. Cs de la Salud","carrera":"Química y Farmacia","cohorte":"202510","trabaja":0,"hijos":0,"cuidador":1,"salud":"No","compu":1,"apoyo_ua":1,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"De acuerdo","motivado":"De acuerdo","preparado":"De acuerdo","feliz":"De acuerdo","sosten":0,"saac_zero":0},{"campus":"Providencia","fac":"Fac. Cs Sociales y Humanidades","carrera":"Psicología","cohorte":"202410","trabaja":1,"hijos":0,"cuidador":1,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":1,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":1,"saac_zero":0},{"campus":"San Miguel","fac":"Fac. Cs Sociales y Humanidades","carrera":"Psicología","cohorte":"202510","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":1,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"De acuerdo","preparado":"En desacuerdo","feliz":"De acuerdo","sosten":0,"saac_zero":0},{"campus":"San Miguel","fac":"Fac. Derecho","carrera":"Derecho","cohorte":"202510","trabaja":1,"hijos":0,"cuidador":1,"salud":"Sí, de salud física","compu":0,"apoyo_ua":1,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"En desacuerdo","motivado":"De acuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"De acuerdo","sosten":1,"saac_zero":0},{"campus":"Temuco","fac":"Fac. Arquitec. y Construcción","carrera":"Ingeniería en Construcción","cohorte":"202010","trabaja":1,"hijos":0,"cuidador":1,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":1,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Muy de acuerdo","motivado":"De acuerdo","preparado":"De acuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":1,"saac_zero":0},{"campus":"Providencia","fac":"Fac. Cs de la Salud","carrera":"Terapia Ocupacional","cohorte":"202410","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":1,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Muy en desacuerdo","motivado":"Muy en desacuerdo","preparado":"En desacuerdo","feliz":"En desacuerdo","sosten":0,"saac_zero":1},{"campus":"Talca","fac":"Fac. Cs de la Salud","carrera":"Terapia Ocupacional","cohorte":"202310","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"Muy en desacuerdo","preparado":"En desacuerdo","feliz":"Muy en desacuerdo","sosten":0,"saac_zero":0},{"campus":"Providencia","fac":"Fac. Administración y Negocios","carrera":"Ingeniería Comercial","cohorte":"202210","trabaja":1,"hijos":0,"cuidador":1,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"En desacuerdo","preparado":"En desacuerdo","feliz":"Muy en desacuerdo","sosten":1,"saac_zero":0},{"campus":"San Miguel","fac":"Fac. Cs Sociales y Humanidades","carrera":"Trabajo Social","cohorte":"202410","trabaja":0,"hijos":0,"cuidador":1,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":1,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"De acuerdo","motivado":"De acuerdo","preparado":"De acuerdo","feliz":"De acuerdo","sosten":0,"saac_zero":0},{"campus":"Talca","fac":"Fac. Cs Sociales y Humanidades","carrera":"Trabajo Social","cohorte":"202210","trabaja":1,"hijos":0,"cuidador":0,"salud":"No","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"De acuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":0,"saac_zero":0},{"campus":"Talca","fac":"Fac. Cs de la Salud","carrera":"Terapia Ocupacional","cohorte":"202310","trabaja":0,"hijos":0,"cuidador":0,"salud":"No","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":1,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Muy en desacuerdo","motivado":"Muy en desacuerdo","preparado":"En desacuerdo","feliz":"Muy en desacuerdo","sosten":0,"saac_zero":1},{"campus":"Providencia","fac":"Fac. Ingeniería","carrera":"Ingeniería Civil Informática","cohorte":"202510","trabaja":1,"hijos":0,"cuidador":1,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":0,"ap_dir":1,"ap_tecnicas":1,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Muy en desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"Muy en desacuerdo","feliz":"De acuerdo","sosten":1,"saac_zero":1},{"campus":"Temuco","fac":"Fac. Administración y Negocios","carrera":"Aud. e Ing En Control de Gest.","cohorte":"202310","trabaja":1,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":1,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":1,"org_tiempo":"De acuerdo","motivado":"Muy de acuerdo","preparado":"Muy de acuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":0,"saac_zero":1},{"campus":"Talca","fac":"Fac. Cs Sociales y Humanidades","carrera":"Psicología","cohorte":"202210","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"De acuerdo","preparado":"De acuerdo","feliz":"De acuerdo","sosten":0,"saac_zero":0},{"campus":"Temuco","fac":"Fac. Cs de la Salud","carrera":"Nutrición y Dietética","cohorte":"202210","trabaja":0,"hijos":0,"cuidador":1,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":0,"ap_dir":1,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Muy en desacuerdo","motivado":"Muy en desacuerdo","preparado":"En desacuerdo","feliz":"Muy en desacuerdo","sosten":0,"saac_zero":0},{"campus":"Talca","fac":"Fac. Cs de la Salud","carrera":"Terapia Ocupacional","cohorte":"202310","trabaja":0,"hijos":1,"cuidador":1,"salud":"No","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":1,"ap_tecnicas":1,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"En desacuerdo","motivado":"En desacuerdo","preparado":"De acuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":0,"saac_zero":1},{"campus":"Temuco","fac":"Fac. Cs Sociales y Humanidades","carrera":"Periodismo","cohorte":"202310","trabaja":0,"hijos":1,"cuidador":1,"salud":"No","compu":0,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":1,"ap_otro":1,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":0,"saac_zero":0},{"campus":"Talca","fac":"Fac. Cs de la Salud","carrera":"Terapia Ocupacional","cohorte":"202510","trabaja":0,"hijos":0,"cuidador":0,"salud":"No","compu":0,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":1,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":0,"saac_zero":1},{"campus":"Talca","fac":"Fac. Cs Sociales y Humanidades","carrera":"Psicología","cohorte":"202310","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud física","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":1,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"En desacuerdo","sosten":0,"saac_zero":0},{"campus":"San Miguel","fac":"Fac. Cs de la Salud","carrera":"Odontología","cohorte":"202310","trabaja":0,"hijos":0,"cuidador":0,"salud":"No","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":1,"ap_tecnicas":0,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"En desacuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":0,"saac_zero":1},{"campus":"Talca","fac":"Fac. Cs Sociales y Humanidades","carrera":"Periodismo","cohorte":"202210","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":1,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"En desacuerdo","motivado":"En desacuerdo","preparado":"En desacuerdo","feliz":"Muy en desacuerdo","sosten":0,"saac_zero":0},{"campus":"Talca","fac":"Fac. Cs Sociales y Humanidades","carrera":"Psicología","cohorte":"202310","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":1,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"En desacuerdo","motivado":"En desacuerdo","preparado":"Muy en desacuerdo","feliz":"Muy en desacuerdo","sosten":0,"saac_zero":0},{"campus":"Providencia","fac":"Fac. Derecho","carrera":"Derecho","cohorte":"202410","trabaja":1,"hijos":1,"cuidador":1,"salud":"No","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":1,"ap_tecnicas":1,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"En desacuerdo","motivado":"En desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":1,"saac_zero":1},{"campus":"San Miguel","fac":"Fac. Cs de la Salud","carrera":"Enfermería","cohorte":"201910","trabaja":1,"hijos":0,"cuidador":1,"salud":"Sí, de salud física","compu":0,"apoyo_ua":1,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"De acuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":1,"saac_zero":0},{"campus":"San Miguel","fac":"Fac. Cs de la Salud","carrera":"Enfermería","cohorte":"202410","trabaja":1,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":1,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"De acuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":0,"saac_zero":0},{"campus":"Providencia","fac":"Fac. Cs de la Salud","carrera":"Química y Farmacia","cohorte":"202410","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":1,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"En desacuerdo","motivado":"Muy en desacuerdo","preparado":"Muy en desacuerdo","feliz":"Muy en desacuerdo","sosten":0,"saac_zero":0},{"campus":"Talca","fac":"Fac. Derecho","carrera":"Derecho","cohorte":"202510","trabaja":1,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":1,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":1,"org_tiempo":"En desacuerdo","motivado":"De acuerdo","preparado":"De acuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":0,"saac_zero":1},{"campus":"Talca","fac":"Fac. Cs de la Salud","carrera":"Química y Farmacia","cohorte":"202410","trabaja":0,"hijos":1,"cuidador":1,"salud":"No","compu":1,"apoyo_ua":1,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"En desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":0,"saac_zero":0},{"campus":"Providencia","fac":"Fac. Cs de la Salud","carrera":"Terapia Ocupacional","cohorte":"202410","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":1,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"En desacuerdo","sosten":0,"saac_zero":0},{"campus":"Providencia","fac":"Fac. Derecho","carrera":"Derecho","cohorte":"202110","trabaja":1,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":1,"ap_tecnicas":1,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Muy en desacuerdo","motivado":"En desacuerdo","preparado":"De acuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":0,"saac_zero":1},{"campus":"Providencia","fac":"Fac. Cs de la Salud","carrera":"Terapia Ocupacional","cohorte":"202310","trabaja":0,"hijos":0,"cuidador":1,"salud":"No","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"De acuerdo","feliz":"De acuerdo","sosten":0,"saac_zero":0},{"campus":"Talca","fac":"Fac. Educación","carrera":"Pedagogía en Ed. Diferencial","cohorte":"202510","trabaja":1,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"En desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"En desacuerdo","sosten":0,"saac_zero":0},{"campus":"Talca","fac":"Fac. Educación","carrera":"Pedagogía en Castellano","cohorte":"202210","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":1,"org_tiempo":"De acuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"De acuerdo","feliz":"Muy en desacuerdo","sosten":0,"saac_zero":0},{"campus":"San Miguel","fac":"Fac. Cs Sociales y Humanidades","carrera":"Trabajo Social","cohorte":"202210","trabaja":0,"hijos":0,"cuidador":0,"salud":"No","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":1,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"De acuerdo","preparado":"Muy de acuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":0,"saac_zero":1},{"campus":"Temuco","fac":"Fac. Cs de la Salud","carrera":"Química y Farmacia","cohorte":"202310","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":1,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"En desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"En desacuerdo","feliz":"En desacuerdo","sosten":0,"saac_zero":0},{"campus":"Talca","fac":"Fac. Cs Sociales y Humanidades","carrera":"Trabajo Social","cohorte":"202310","trabaja":1,"hijos":0,"cuidador":1,"salud":"Sí, de salud física","compu":1,"apoyo_ua":0,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":1,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"De acuerdo","preparado":"De acuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":1,"saac_zero":0},{"campus":"Providencia","fac":"Fac. Derecho","carrera":"Derecho","cohorte":"202210","trabaja":1,"hijos":0,"cuidador":1,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":1,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"Muy en desacuerdo","preparado":"Muy en desacuerdo","feliz":"Muy en desacuerdo","sosten":1,"saac_zero":0},{"campus":"Talca","fac":"Fac. Cs de la Salud","carrera":"Kinesiología","cohorte":"202310","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":0,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"En desacuerdo","preparado":"En desacuerdo","feliz":"Muy en desacuerdo","sosten":0,"saac_zero":0},{"campus":"Talca","fac":"Fac. Derecho","carrera":"Derecho","cohorte":"202310","trabaja":0,"hijos":0,"cuidador":1,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":1,"ap_tecnicas":1,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"En desacuerdo","sosten":0,"saac_zero":1},{"campus":"Talca","fac":"Fac. Cs de la Salud","carrera":"Química y Farmacia","cohorte":"202210","trabaja":1,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":1,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":0,"saac_zero":0},{"campus":"Temuco","fac":"Fac. Derecho","carrera":"Derecho","cohorte":"201810","trabaja":1,"hijos":0,"cuidador":0,"salud":"No","compu":1,"apoyo_ua":1,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Muy de acuerdo","motivado":"Muy de acuerdo","preparado":"Muy de acuerdo","feliz":"Muy de acuerdo","sosten":0,"saac_zero":0},{"campus":"Temuco","fac":"Fac. Cs Sociales y Humanidades","carrera":"Trabajo Social","cohorte":"202310","trabaja":0,"hijos":0,"cuidador":0,"salud":"No","compu":1,"apoyo_ua":0,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":1,"org_tiempo":"De acuerdo","motivado":"En desacuerdo","preparado":"De acuerdo","feliz":"Muy en desacuerdo","sosten":0,"saac_zero":0},{"campus":"San Miguel","fac":"Fac. Cs de la Salud","carrera":"Odontología","cohorte":"201910","trabaja":0,"hijos":0,"cuidador":0,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":0,"ap_dir":1,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":1,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"Muy en desacuerdo","preparado":"Muy en desacuerdo","feliz":"Muy en desacuerdo","sosten":0,"saac_zero":0},{"campus":"San Miguel","fac":"Fac. Cs Sociales y Humanidades","carrera":"Psicología","cohorte":"202310","trabaja":0,"hijos":0,"cuidador":1,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":1,"ap_tecnicas":1,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Muy en desacuerdo","motivado":"En desacuerdo","preparado":"En desacuerdo","feliz":"En desacuerdo","sosten":0,"saac_zero":1},{"campus":"San Miguel","fac":"Fac. Derecho","carrera":"Derecho","cohorte":"201210","trabaja":1,"hijos":1,"cuidador":1,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":1,"org_tiempo":"Muy en desacuerdo","motivado":"En desacuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":1,"saac_zero":0},{"campus":"Temuco","fac":"Fac. Cs de la Salud","carrera":"Química y Farmacia","cohorte":"202310","trabaja":0,"hijos":0,"cuidador":1,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"De acuerdo","motivado":"De acuerdo","preparado":"Ni de acuerdo ni en desacuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":0,"saac_zero":0},{"campus":"San Miguel","fac":"Fac. Cs de la Salud","carrera":"Terapia Ocupacional","cohorte":"202110","trabaja":1,"hijos":0,"cuidador":1,"salud":"No","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":1,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Muy en desacuerdo","motivado":"Muy en desacuerdo","preparado":"Muy en desacuerdo","feliz":"Muy en desacuerdo","sosten":1,"saac_zero":1},{"campus":"Providencia","fac":"Fac. Derecho","carrera":"Derecho","cohorte":"202210","trabaja":1,"hijos":1,"cuidador":1,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":1,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":1,"org_tiempo":"En desacuerdo","motivado":"Muy en desacuerdo","preparado":"Muy en desacuerdo","feliz":"En desacuerdo","sosten":1,"saac_zero":0},{"campus":"Providencia","fac":"Fac. Derecho","carrera":"Derecho","cohorte":"202410","trabaja":1,"hijos":0,"cuidador":1,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":0,"ap_dir":0,"ap_tecnicas":1,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Muy en desacuerdo","motivado":"Muy en desacuerdo","preparado":"En desacuerdo","feliz":"En desacuerdo","sosten":1,"saac_zero":1},{"campus":"Temuco","fac":"Fac. Cs Sociales y Humanidades","carrera":"Psicología","cohorte":"202310","trabaja":0,"hijos":1,"cuidador":1,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"Ni de acuerdo ni en desacuerdo","preparado":"De acuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":0,"saac_zero":0},{"campus":"Providencia","fac":"Fac. Cs de la Salud","carrera":"Kinesiología","cohorte":"202210","trabaja":1,"hijos":0,"cuidador":1,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"Muy en desacuerdo","preparado":"Muy en desacuerdo","feliz":"En desacuerdo","sosten":1,"saac_zero":0},{"campus":"Providencia","fac":"Fac. Cs de la Salud","carrera":"Química y Farmacia","cohorte":"202310","trabaja":0,"hijos":0,"cuidador":1,"salud":"Sí, de salud mental","compu":0,"apoyo_ua":0,"ap_psico":0,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":0,"ap_diversidad":0,"ap_otro":1,"org_tiempo":"Muy en desacuerdo","motivado":"De acuerdo","preparado":"De acuerdo","feliz":"Muy en desacuerdo","sosten":0,"saac_zero":0},{"campus":"Talca","fac":"Fac. Educación","carrera":"Licenciatura en Artes Visuales","cohorte":"202210","trabaja":1,"hijos":0,"cuidador":1,"salud":"Sí, de salud mental","compu":1,"apoyo_ua":0,"ap_psico":1,"ap_dir":0,"ap_tecnicas":0,"ap_tiempo":1,"ap_diversidad":0,"ap_otro":0,"org_tiempo":"Ni de acuerdo ni en desacuerdo","motivado":"En desacuerdo","preparado":"En desacuerdo","feliz":"Ni de acuerdo ni en desacuerdo","sosten":1,"saac_zero":1}];
+
+// ── CHART DEFAULTS ────────────────────────────────────────────────────────────
+Chart.defaults.color = '#6b7280';
+Chart.defaults.font.family = "'Segoe UI',system-ui,sans-serif";
+const grid = { color:'rgba(0,0,0,0.05)', drawBorder:false };
+const tip  = { backgroundColor:'#fff', borderColor:'rgba(0,0,0,0.1)', borderWidth:1, padding:10, cornerRadius:8, titleColor:'#1a1a2e', bodyColor:'#6b7280', boxShadow:'0 4px 12px rgba(0,0,0,.1)' };
+
+// Pastel colors
+const C_ROSE  = 'rgba(229,115,115,.85)';
+const C_AMBER = 'rgba(246,166,35,.85)';
+const C_TEAL  = 'rgba(77,182,172,.85)';
+const C_BLUE  = 'rgba(91,156,246,.85)';
+const C_VIO   = 'rgba(155,127,212,.85)';
+const C_SAGE  = 'rgba(129,184,154,.85)';
+const C_PEACH = 'rgba(240,149,106,.85)';
+
+// ── S2: FACULTAD CHART ────────────────────────────────────────────────────────
+const FAC_LABELS  = ['Cs. Salud','Cs. Sociales','Derecho','Educación','Adm. y Neg.','Ingeniería','Arq. y Const.'];
+const FAC_KEYS    = ['Fac. Cs de la Salud','Fac. Cs Sociales y Humanidades','Fac. Derecho','Fac. Educación','Fac. Administración y Negocios','Fac. Ingeniería','Fac. Arquitec. y Construcción'];
+const FAC_VALS    = [44,25,13,8,4,4,1];
+const FAC_COLORS  = [C_BLUE,C_TEAL,C_VIO,C_SAGE,C_AMBER,C_ROSE,C_PEACH];
+
+const FAC_CARRERAS = {
+  'Fac. Cs de la Salud': {'Química y Farmacia':15,'Terapia Ocupacional':11,'Enfermería':6,'Fonoaudiología':3,'Kinesiología':3,'Odontología':3,'Nutrición y Dietética':2,'Medicina':1},
+  'Fac. Cs Sociales y Humanidades': {'Psicología':13,'Trabajo Social':9,'Periodismo':2,'P. Prof. y Com. Integral':1},
+  'Fac. Derecho': {'Derecho':13},
+  'Fac. Educación': {'Ped. Ed. Diferencial':2,'Ped. Ed. Básica':2,'Ped. en Inglés':1,'Ped. Ed. Física':1,'Ped. en Castellano':1,'Lic. Artes Visuales':1},
+  'Fac. Administración y Negocios': {'Ing. Comercial':2,'Ing. Control de Gestión':1,'Aud. e Ing. Control':1},
+  'Fac. Ingeniería': {'Ing. Civil Industrial':2,'Ing. Civil Informática':2},
+  'Fac. Arquitec. y Construcción': {'Ing. en Construcción':1},
+};
+
+let carreraChart = null;
+let selectedFacIdx = null;
+
+const facChart = new Chart(document.getElementById('facChart'),{
+  type:'bar',
+  data:{
+    labels:FAC_LABELS,
+    datasets:[{
+      data:FAC_VALS,
+      backgroundColor:FAC_COLORS,
+      borderRadius:8,
+      borderSkipped:false,
+    }]
+  },
+  options:{
+    indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{display:false}, tooltip:tip },
+    scales:{ x:{grid,ticks:{font:{size:13}}}, y:{grid:{display:false},ticks:{font:{size:13}}} },
+    onClick:(e,els)=>{
+      if(!els.length)return;
+      const i = els[0].index;
+      showCarreras(i);
+    }
+  }
+});
+
+function showCarreras(facIdx){
+  selectedFacIdx = facIdx;
+  const facKey = FAC_KEYS[facIdx];
+  const facLabel = FAC_LABELS[facIdx];
+  const carreras = FAC_CARRERAS[facKey];
+  const labels = Object.keys(carreras);
+  const vals = Object.values(carreras);
+
+  document.getElementById('facHint').style.display='none';
+  document.getElementById('carreraWrap').style.display='block';
+  document.getElementById('facSelectedLabel').textContent = facLabel;
+
+  if(carreraChart) carreraChart.destroy();
+  carreraChart = new Chart(document.getElementById('carreraChart'),{
+    type:'bar',
+    data:{
+      labels,
+      datasets:[{ data:vals, backgroundColor:FAC_COLORS[facIdx], borderRadius:7, borderSkipped:false }]
+    },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:tip },
+      scales:{ x:{grid,ticks:{stepSize:1,font:{size:13}}}, y:{grid:{display:false},ticks:{font:{size:13}}} }
+    }
+  });
+}
+
+// ── S3: NECESIDADES FILTERS (dropdowns) ───────────────────────────────────────
+const activeCampus  = new Set();
+const activeFac     = new Set();
+const activeCarrera = new Set();
+
+function onDropdownChange() {
+  const campus  = document.getElementById('dd_campus').value;
+  const fac     = document.getElementById('dd_fac').value;
+  const carrera = document.getElementById('dd_carrera').value;
+
+  activeCampus.clear();
+  activeFac.clear();
+  activeCarrera.clear();
+  if (campus)  activeCampus.add(campus);
+  if (fac)     activeFac.add(fac);
+  if (carrera) activeCarrera.add(carrera);
+
+  // Highlight selects when active
+  ['dd_campus','dd_fac','dd_carrera'].forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.toggle('active', el.value !== '');
+  });
+
+  rebuildCarreraDropdown();
+  updateApoyoChart();
+}
+
+function rebuildCarreraDropdown() {
+  const filtered = getFiltered(false);
+  const carreras = [...new Set(filtered.map(r => r.carrera))].sort();
+  const sel = document.getElementById('dd_carrera');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Todas las carreras</option>';
+  carreras.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = c;
+    if (c === current) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  // If previous carrera no longer in scope, clear it
+  if (current && !carreras.includes(current)) {
+    sel.value = '';
+    activeCarrera.clear();
+    sel.classList.remove('active');
+  }
+}
+
+function getFiltered(inclCarrera = true) {
+  return DATA.filter(r => {
+    if (activeCampus.size  && !activeCampus.has(r.campus))   return false;
+    if (activeFac.size     && !activeFac.has(r.fac))         return false;
+    if (inclCarrera && activeCarrera.size && !activeCarrera.has(r.carrera)) return false;
+    return true;
+  });
+}
+
+function clearAllFilters() {
+  activeCampus.clear(); activeFac.clear(); activeCarrera.clear();
+  ['dd_campus','dd_fac','dd_carrera'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.value = ''; el.classList.remove('active'); }
+  });
+  rebuildCarreraDropdown();
+  updateApoyoChart();
+}
+
+// Init carrera dropdown on load
+rebuildCarreraDropdown();
+
+// ── S3: APOYO BAR CHART ───────────────────────────────────────────────────────
+let apoyoBar = null;
+const APOYO_LABELS = ['Psicológico',['Vocación y','Aspectos','Académicos'],['Técnicas','de Estudio'],['Organización','del Tiempo'],['Diversidad','e Inclusión'],'Otro'];
+const APOYO_KEYS   = ['ap_psico','ap_dir','ap_tecnicas','ap_tiempo','ap_diversidad','ap_otro'];
+const APOYO_COLORS = [C_ROSE, C_BLUE, C_TEAL, C_AMBER, C_VIO, C_PEACH];
+
+function updateApoyoChart(){
+  const rows = getFiltered();
+  const n = rows.length;
+  const vals = APOYO_KEYS.map(k=>rows.filter(r=>r[k]).length);
+
+  // Update counter & summary
+  document.getElementById('ctitle_main').textContent='n='+n;
+  document.getElementById('countLabel').textContent=n;
+  const parts=[];
+  if(activeCampus.size) parts.push([...activeCampus].join(', '));
+  if(activeFac.size) parts.push([...activeFac].map(f=>f.replace('Fac. ','')).join(', '));
+  if(activeCarrera.size) parts.push([...activeCarrera].join(', '));
+  document.getElementById('filterSummary').textContent = parts.length?' · '+parts.join(' · '):'';
+
+  if(apoyoBar) apoyoBar.destroy();
+  apoyoBar = new Chart(document.getElementById('apoyoBar'),{
+    type:'bar',
+    data:{
+      labels:APOYO_LABELS,
+      datasets:[{
+        data:vals,
+        backgroundColor:APOYO_COLORS,
+        borderRadius:8,
+        borderSkipped:false,
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          ...tip,
+          callbacks:{
+            label:(ctx)=>` ${ctx.raw} estudiantes (${n?Math.round(ctx.raw/n*100):0}%)`
+          }
+        }
+      },
+      scales:{
+        x:{ grid:{display:false}, ticks:{font:{size:12.5}} },
+        y:{ grid, ticks:{font:{size:12.5},stepSize:5} }
+      }
+    }
+  });
+}
+
+// Init carrera dropdown & chart
+rebuildCarreraDropdown();
+updateApoyoChart();
+
+// ── NAV & SCROLL ───────────────────────────────────────────────────────────────
+const secs = document.querySelectorAll('section, footer');
+function goTo(i){secs[i].scrollIntoView({behavior:'smooth'})}
+function syncNav(i){
+  for(let j=0;j<5;j++){
+    document.getElementById('ni'+j)?.classList.toggle('active',j===i);
+    document.getElementById('nd'+j)?.classList.toggle('active',j===i);
+  }
+}
+const io = new IntersectionObserver(e=>e.forEach(x=>{
+  if(x.isIntersecting){
+    const i=[...secs].indexOf(x.target); syncNav(i);
+    x.target.querySelectorAll('.prog-fill').forEach(b=>{
+      const w=b.style.width; b.style.width='0';
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{b.style.width=w}));
+    });
+  }
+}),{threshold:0.35});
+secs.forEach(s=>io.observe(s));
+
+</script>
+
+</body>
+</html>
